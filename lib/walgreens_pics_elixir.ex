@@ -21,7 +21,7 @@ defmodule WalgreensPicsElixir do
     |> Map.get("value")
   end
 
-  def download_all_files(files) do
+  def download_all_files(files, _auth) do
     File.mkdir_p!("./downloads")
 
     base_path = "./downloads"
@@ -86,7 +86,7 @@ defmodule WalgreensPicsElixir do
     end)
   end
 
-  def get_albums(raw_data) do
+  def get_albums(raw_data, _auth) do
     IO.puts("Getting albums...")
 
     albums =
@@ -109,40 +109,39 @@ defmodule WalgreensPicsElixir do
     albums
   end
 
-  # def fetch(url) do
-  #   case HTTPoison.get(url) do
-  #     {:ok, response} ->
-  #       {:ok, Poison.decode!(response.body)}
+  defp fetch_for_album_entities(album_id, auth) do
+    HTTP.post(
+      "https://photo.walgreens.com/library/request_api",
+      %{
+        req_service: "pict",
+        type: "GET",
+        version: "v2",
+        url:
+          "collection/#{album_id}/assets?limit=10000&skip=0&sortOrder=ascending&sortCriteria=dateTaken"
+      }
+      |> Poison.encode!(),
+      auth
+    )
+  end
 
-  #     {:error, %{reason: reason}} ->
-  #       {:error, reason}
-  #   end
-  # end
-  defp get_assets_for_album(album_id, album_name) do
+  defp map_urls(asset_data) do
+    asset_data.entities
+    |> Enum.map(fn asset ->
+      asset.files
+      |> Enum.filter(fn file -> file.fileType == "HIRES" end)
+      |> Enum.map(fn file ->
+        file.url
+      end)
+    end)
+    |> List.flatten()
+  end
+
+  defp get_assets_for_album(album_id, album_name, auth) do
     IO.puts("Fetching assets for #{album_name} (#{album_id})")
 
     with {:ok, asset_data} <-
-           HTTP.post(
-             "https://photo.walgreens.com/library/request_api",
-             %{
-               req_service: "pict",
-               type: "GET",
-               version: "v2",
-               url:
-                 "collection/#{album_id}/assets?limit=10000&skip=0&sortOrder=ascending&sortCriteria=dateTaken"
-             }
-             |> Poison.encode!()
-           ) do
-      urls =
-        asset_data.entities
-        |> Enum.map(fn asset ->
-          asset.files
-          |> Enum.filter(fn file -> file.fileType == "HIRES" end)
-          |> Enum.map(fn file ->
-            file.url
-          end)
-        end)
-        |> List.flatten()
+           fetch_for_album_entities(album_id, auth) do
+      urls = map_urls(asset_data)
 
       IO.puts("Found #{length(urls)} assets for #{album_name} (#{album_id})")
       {album_name, urls, album_id}
@@ -157,12 +156,13 @@ defmodule WalgreensPicsElixir do
     end
   end
 
-  defp get_assets_for_albums(collections) do
+  # Fetches all the assets for a given album
+  defp get_assets_for_albums(collections, auth) do
     collections
     |> Enum.map(fn {date, albums} ->
       albums
       |> Enum.map(fn {album_name, album_id, _album_assets} ->
-        Task.async(fn -> {date, get_assets_for_album(album_id, album_name)} end)
+        Task.async(fn -> {date, get_assets_for_album(album_id, album_name, auth)} end)
       end)
       |> Task.await_many(120_000)
       |> Enum.reduce(
@@ -182,7 +182,7 @@ defmodule WalgreensPicsElixir do
     |> List.flatten()
   end
 
-  defp download_all(path) do
+  defp download_all(path, auth) do
     {:ok, data} = File.read(path)
     {:ok, pics_data} = Poison.decode(data)
 
@@ -192,22 +192,22 @@ defmodule WalgreensPicsElixir do
         load_asset_data()
       else
         pics_data
-        |> get_albums
-        |> get_assets_for_albums
+        |> get_albums(auth)
+        |> get_assets_for_albums(auth)
         |> persist_asset_data
       end
 
     data
-    |> download_all_files
+    |> download_all_files(auth)
     |> List.flatten()
-    |> Commandline.CLI.report()
+    |> WalgreensPicsElixir.Console.report()
   end
 
-  def run(file, reset \\ false) do
+  def run(file, auth, reset \\ false) do
     if reset do
       File.rm!("_inprogress.bin")
     end
 
-    download_all(file)
+    download_all(file, auth)
   end
 end

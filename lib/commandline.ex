@@ -1,38 +1,33 @@
 defmodule Commandline.CLI do
-  import WalgreensPicsElixir.Console
-
+  @spec main([binary]) :: :ok
   def main(args) do
-    options = [switches: [file: :string, reset: :boolean], aliases: [f: :file, r: :reset]]
+    options = [
+      switches: [file: :string, reset: :boolean, auth: :string],
+      aliases: [f: :file, r: :reset]
+    ]
+
     {opts, _, _} = OptionParser.parse(args, options)
-    WalgreensPicsElixir.run(Keyword.get(opts, :file), Keyword.get(opts, :reset, false))
-  end
 
-  def report(data) do
-    errors = data |> Enum.filter(fn {status, _, _, _, _, _} -> status !== :ok end) |> IO.inspect()
-
-    if Enum.count(errors) > 0 do
-      IO.puts("-------- [ Error report ] ----------")
-    end
-
-    errors
-    |> Enum.group_by(fn {_status, _, _, reason, _, _} -> reason end)
-    |> Enum.each(fn {status, items} ->
+    if length(opts) === 0 do
       IO.puts(
-        white(
-          "--- [ #{red(atom_to_explanation(status))}#{white(" ] (#{Enum.count(items)}) ---")}"
-        )
+        "Usage: walgreens_pics_elixir -f <file containing map of collections> [-r] -a <auth token>"
       )
 
-      items
-      |> Enum.each(fn {_status, name, url, _reason, date, album_id} ->
-        IO.puts(
-          white("---") <>
-            date <>
-            " " <> red(Path.basename(url)) <> white(" in album #{yellow(name)} #{album_id}")
-        )
-      end)
-    end)
+      exit(:normal)
+    end
 
-    :ok
+    if Keyword.get(opts, :auth) == nil do
+      IO.puts(
+        "Usage: walgreens_pics_elixir -f <file containing map of collections> [-r] -a <auth token>"
+      )
+
+      exit(:normal)
+    end
+
+    WalgreensPicsElixir.run(
+      Keyword.get(opts, :file),
+      Keyword.get(opts, :auth),
+      Keyword.get(opts, :reset)
+    )
   end
 end

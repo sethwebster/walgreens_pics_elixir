@@ -27,3 +27,4 @@ _inprogress.bin
 *.json
 walgreens_pics_elixir
 .elixir_ls
+token

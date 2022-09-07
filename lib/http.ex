@@ -1,5 +1,5 @@
 defmodule WalgreensPicsElixir.HTTP do
-  def post(url, body) do
+  def post(url, body, token) do
     headers = [
       {":authority", "photo.walgreens.com"},
       {":method", "POST"},
@@ -7,10 +7,8 @@ defmodule WalgreensPicsElixir.HTTP do
       {"scheme", "https"},
       {"accept", "application/json, text/javascript, */*; q=0.01"},
       {"accept-language", "en-US,en;q=0.9"},
-      {"access_token",
-       "OAuth wg_v1a;kmI6pY39IjaOiJiZ/qJTSTwvWv7EpaWfNXzO9lUKUALnISEkmlf6vNgWwtAUl6JjIX3esLeUhUHS2l4OKLwQ4us4orqW6PJ9Kx0LY4xsISCysLhbcraVcpmptTzbnBU0odMB1yYQcFF59rZ0P7nBzvN/CtlZyVubXIH+WAAW5EI=JnBbwhle/oefpMssqponHvY60km/RKTfGpANlImQBE5m2hDEtQHX8Yw71SyV01m0059SW1yCwaY4vizFibOFOFRReZjPqFqqX7gL1UuZ48wgty+MMjqk4wpU4Jz6nZADKSyHld4msKKEMFhYYFg2/2lVRRW7B415gaj04vBUVYQ=fVqSRPUig0XezSbzltmqo98GGtx4kXT0Y4kFQpGwnnu+zmvGNrBc5anx8q/snovpfLtCKX9msFCFrFW729xklISz5DD4hIEm9w9ThXRBZyounifAdNMgJdpIE4vsxz+0phWUUtx9kvGeCh/4vZvGtk/zFj/ItlxNsIE2/oxWkdU="},
-      {"authorization",
-       "OAuth wg_v1a;kmI6pY39IjaOiJiZ/qJTSTwvWv7EpaWfNXzO9lUKUALnISEkmlf6vNgWwtAUl6JjIX3esLeUhUHS2l4OKLwQ4us4orqW6PJ9Kx0LY4xsISCysLhbcraVcpmptTzbnBU0odMB1yYQcFF59rZ0P7nBzvN/CtlZyVubXIH+WAAW5EI=JnBbwhle/oefpMssqponHvY60km/RKTfGpANlImQBE5m2hDEtQHX8Yw71SyV01m0059SW1yCwaY4vizFibOFOFRReZjPqFqqX7gL1UuZ48wgty+MMjqk4wpU4Jz6nZADKSyHld4msKKEMFhYYFg2/2lVRRW7B415gaj04vBUVYQ=fVqSRPUig0XezSbzltmqo98GGtx4kXT0Y4kFQpGwnnu+zmvGNrBc5anx8q/snovpfLtCKX9msFCFrFW729xklISz5DD4hIEm9w9ThXRBZyounifAdNMgJdpIE4vsxz+0phWUUtx9kvGeCh/4vZvGtk/zFj/ItlxNsIE2/oxWkdU="},
+      {"access_token", token},
+      {"authorization", token},
       {"cache-control", "no-cache"},
       {"content-type", "application/json"},
       {"gsid", "aus-5b926e8b-d629-4c6e-9acf-27ebe47aa1ba-61535"},
@@ -43,4 +41,14 @@ defmodule WalgreensPicsElixir.HTTP do
         {:error, %{reason: reason, url: url}}
     end
   end
+
+  # def fetch(url) do
+  #   case HTTPoison.get(url) do
+  #     {:ok, response} ->
+  #       {:ok, Poison.decode!(response.body)}
+
+  #     {:error, %{reason: reason}} ->
+  #       {:error, reason}
+  #   end
+  # end
 end
